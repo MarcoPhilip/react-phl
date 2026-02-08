@@ -1,26 +1,19 @@
 // src/App.jsx
 
-// Import React hooks for state + memoized filtering
 import { useMemo, useState } from "react";
+import { Routes, Route, Link, NavLink, Navigate, Outlet } from "react-router-dom";
 
-// Import React Router pieces for routing + links
-import { Routes, Route, Link } from "react-router-dom";
-
-// Import LocalStorage hook + seed data
 import useLocalStorage from "./hooks/useLocalStorage";
 import { teamsSeed, playersSeed, gamesSeed, boxScoresSeed } from "./data/seed";
 
-// Import forms + edit components you already have
 import TeamForm from "./components/TeamForm";
 import EditTeamForm from "./components/EditTeamForm";
 import EditPlayerForm from "./components/EditPlayerForm";
 
-// Import pages
 import TeamProfile from "./pages/TeamProfile";
 import PlayerProfile from "./pages/PlayerProfile";
 import GameProfile from "./pages/GameProfile";
 
-// Import the Stat Leaders tab component
 import StatLeaders from "./components/StatLeaders";
 
 export default function App() {
@@ -42,16 +35,9 @@ export default function App() {
   // Track which player is being edited (inline edit)
   const [editingPlayerId, setEditingPlayerId] = useState(null);
 
-  // Track current active tab
-  const [activeTab, setActiveTab] = useState("players"); // players | teams | games | standings | leaders
-
-  // Search input for Players tab
+  // Search inputs for tabs
   const [playersQuery, setPlayersQuery] = useState("");
-
-  // Search input for Teams tab
   const [teamsQuery, setTeamsQuery] = useState("");
-
-  // Search input for Games tab
   const [gamesQuery, setGamesQuery] = useState("");
 
   // Add a new team from TeamForm
@@ -256,433 +242,406 @@ export default function App() {
     return rows;
   }, [teams, games]);
 
-  // Home UI
-  const Home = (
-    <main className="app">
-      <header className="app-header">
-        <div>
-          <h1 className="app-title mb-0">Peninsula Hoopers League</h1>
-          <p className="app-subtitle mb-0">
-            Phase 1: CRUD + Games + Standings + Leaders
-          </p>
-        </div>
+  // -----------------------------
+  // Tab pages (nested routes)
+  // -----------------------------
 
-        <button className="btn btn-outline-secondary" onClick={resetLeague}>
-          Reset Data
-        </button>
-      </header>
-
-      <hr className="divider" />
-
-      <section className="section">
-        <div className="d-flex justify-content-between align-items-center">
-          <h2 className="section-title mb-0">League</h2>
-          <small className="text-muted">
-            {players.length} players • {teams.length} teams • {games.length} games
-          </small>
-        </div>
-
-        {/* Tabs */}
-        <ul className="nav nav-tabs mt-3">
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "players" ? "active" : ""}`}
-              onClick={() => setActiveTab("players")}
-            >
-              Players{" "}
-              <span className="badge text-bg-secondary ms-1">
-                {playerResults.length}
-              </span>
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "teams" ? "active" : ""}`}
-              onClick={() => setActiveTab("teams")}
-            >
-              Teams{" "}
-              <span className="badge text-bg-secondary ms-1">
-                {teamResults.length}
-              </span>
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "games" ? "active" : ""}`}
-              onClick={() => setActiveTab("games")}
-            >
-              Games{" "}
-              <span className="badge text-bg-secondary ms-1">
-                {gameResults.length}
-              </span>
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "standings" ? "active" : ""}`}
-              onClick={() => setActiveTab("standings")}
-            >
-              Standings
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button
-              type="button"
-              className={`nav-link ${activeTab === "leaders" ? "active" : ""}`}
-              onClick={() => setActiveTab("leaders")}
-            >
-              Leaders
-            </button>
-          </li>
-        </ul>
-
-        {/* Tab content */}
-        <div className="pt-3">
-          {/* PLAYERS TAB */}
-          {activeTab === "players" ? (
-            <>
-              <div className="mb-2">
-                <label className="form-label">Search players</label>
-                <div className="d-flex gap-2">
-                  <input
-                    className="form-control"
-                    placeholder="Name, position, or jersey #..."
-                    value={playersQuery}
-                    onChange={(e) => setPlayersQuery(e.target.value)}
-                  />
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setPlayersQuery("")}
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {playerResults.length === 0 ? (
-                <p className="empty">
-                  {playersQ
-                    ? "No players match your search."
-                    : "No players yet."}
-                </p>
-              ) : (
-                <ul className="roster">
-                  {playerResults.map((p) => (
-                    <li key={p.id} className="roster-item">
-                      {editingPlayerId === p.id ? (
-                        <EditPlayerForm
-                          initialPlayer={p}
-                          onSave={(updates) => {
-                            updatePlayer(p.id, updates);
-                            setEditingPlayerId(null);
-                          }}
-                          onCancel={() => setEditingPlayerId(null)}
-                        />
-                      ) : (
-                        <>
-                          <Link
-                            to={`/players/${p.id}`}
-                            className="roster-text text-decoration-none"
-                          >
-                            #{p.number} {p.name} ({p.position}) —{" "}
-                            <b>{teamNameFor(p)}</b>
-                          </Link>
-
-                          <div className="roster-actions">
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => setEditingPlayerId(p.id)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => removePlayer(p.id)}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          ) : null}
-
-          {/* TEAMS TAB */}
-          {activeTab === "teams" ? (
-            <>
-              <div className="mb-3">
-                <h3 className="h5 mb-2">Add Team</h3>
-                <TeamForm onAddTeam={handleAddTeam} />
-              </div>
-
-              <div className="mb-2">
-                <label className="form-label">Search teams</label>
-                <div className="d-flex gap-2">
-                  <input
-                    className="form-control"
-                    placeholder="Name, city, or color..."
-                    value={teamsQuery}
-                    onChange={(e) => setTeamsQuery(e.target.value)}
-                  />
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setTeamsQuery("")}
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {teamResults.length === 0 ? (
-                <p className="empty">
-                  {teamsQ ? "No teams match your search." : "No teams yet."}
-                </p>
-              ) : (
-                <ul className="teams">
-                  {teamResults.map((t) => (
-                    <li key={t.id} className="team-card">
-                      <div className="team-header">
-                        <div className="team-meta">
-                          {editingTeamId === t.id ? (
-                            <EditTeamForm
-                              initialTeam={t}
-                              onSave={(updates) => {
-                                updateTeam(t.id, updates);
-                                setEditingTeamId(null);
-                              }}
-                              onCancel={() => setEditingTeamId(null)}
-                            />
-                          ) : (
-                            <>
-                              <h3 className="team-name">
-                                <Link
-                                  to={`/teams/${t.id}`}
-                                  className="text-decoration-none"
-                                >
-                                  {t.name}
-                                </Link>
-                              </h3>
-                              <p className="team-sub mb-0">
-                                {t.city} • Color: {t.color} •{" "}
-                                {playersByTeam(t.id).length} players
-                              </p>
-                            </>
-                          )}
-                        </div>
-
-                        {editingTeamId !== t.id ? (
-                          <div className="team-actions">
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => setEditingTeamId(t.id)}
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => {
-                                const ok = confirm(
-                                  `Delete ${t.name}? This also deletes its players and games.`
-                                );
-                                if (!ok) return;
-                                deleteTeam(t.id);
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          ) : null}
-
-          {/* GAMES TAB */}
-          {activeTab === "games" ? (
-            <>
-              <div className="mb-2">
-                <label className="form-label">Search games</label>
-                <div className="d-flex gap-2">
-                  <input
-                    className="form-control"
-                    placeholder="Date, time, court, or team name..."
-                    value={gamesQuery}
-                    onChange={(e) => setGamesQuery(e.target.value)}
-                  />
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setGamesQuery("")}
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {gameResults.length === 0 ? (
-                <p className="empty">
-                  {gamesQ
-                    ? "No games match your search."
-                    : "No games scheduled yet."}
-                </p>
-              ) : (
-                <ul className="list-group">
-                  {gameResults.map((g) => {
-                    const final = isFinalGame(g);
-
-                    return (
-                      <li
-                        key={g.id}
-                        className="list-group-item d-flex justify-content-between align-items-center"
-                      >
-                        <div>
-                          <div className="fw-semibold">
-                            <Link
-                              to={`/games/${g.id}`}
-                              className="text-decoration-none"
-                            >
-                              {teamLabel(g.homeTeamId)} vs{" "}
-                              {teamLabel(g.awayTeamId)}
-                            </Link>
-
-                            <span
-                              className={`badge ms-2 ${
-                                final ? "text-bg-success" : "text-bg-warning"
-                              }`}
-                            >
-                              {final ? "Final" : "Upcoming"}
-                            </span>
-                          </div>
-
-                          <small className="text-muted">
-                            {g.date} • {g.time} • {g.court}
-                          </small>
-                        </div>
-
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="text-muted">
-                            {final ? `${g.homeScore} - ${g.awayScore}` : "TBD"}
-                          </div>
-
-                          {!final ? (
-                            <button
-                              className="btn btn-sm btn-primary"
-                              onClick={() => enterScorePrompt(g.id)}
-                            >
-                              Enter Score
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => enterScorePrompt(g.id)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() => clearScore(g.id)}
-                              >
-                                Clear
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </>
-          ) : null}
-
-          {/* STANDINGS TAB */}
-          {activeTab === "standings" ? (
-            <>
-              <p className="text-muted mb-2">
-                Standings are computed from <b>Final</b> games only.
-              </p>
-
-              <div className="table-responsive">
-                <table className="table table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Team</th>
-                      <th>W</th>
-                      <th>L</th>
-                      <th>GP</th>
-                      <th>PF</th>
-                      <th>PA</th>
-                      <th>PD</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {standings.map((r, idx) => (
-                      <tr key={r.teamId}>
-                        <td>{idx + 1}</td>
-                        <td>
-                          <Link
-                            to={`/teams/${r.teamId}`}
-                            className="text-decoration-none"
-                          >
-                            {r.name}
-                          </Link>
-                          <div className="text-muted small">{r.city}</div>
-                        </td>
-                        <td>{r.wins}</td>
-                        <td>{r.losses}</td>
-                        <td>{r.gp}</td>
-                        <td>{r.pf}</td>
-                        <td>{r.pa}</td>
-                        <td>{r.pd}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : null}
-
-          {/* LEADERS TAB */}
-          {activeTab === "leaders" ? (
-            <StatLeaders
-              players={players}
-              teams={teams}
-              games={games}
-              boxScores={boxScores}
+  function PlayersTab() {
+    return (
+      <>
+        <div className="mb-2">
+          <label className="form-label">Search players</label>
+          <div className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="Name, position, or jersey #..."
+              value={playersQuery}
+              onChange={(e) => setPlayersQuery(e.target.value)}
             />
-          ) : null}
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setPlayersQuery("")}
+            >
+              Clear
+            </button>
+          </div>
         </div>
-      </section>
-    </main>
-  );
 
+        {playerResults.length === 0 ? (
+          <p className="empty">
+            {playersQ ? "No players match your search." : "No players yet."}
+          </p>
+        ) : (
+          <ul className="roster">
+            {playerResults.map((p) => (
+              <li key={p.id} className="roster-item">
+                {editingPlayerId === p.id ? (
+                  <EditPlayerForm
+                    initialPlayer={p}
+                    onSave={(updates) => {
+                      updatePlayer(p.id, updates);
+                      setEditingPlayerId(null);
+                    }}
+                    onCancel={() => setEditingPlayerId(null)}
+                  />
+                ) : (
+                  <>
+                    <Link
+                      to={`/players/${p.id}`}
+                      className="roster-text text-decoration-none"
+                    >
+                      #{p.number} {p.name} ({p.position}) — <b>{teamNameFor(p)}</b>
+                    </Link>
+
+                    <div className="roster-actions">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setEditingPlayerId(p.id)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => removePlayer(p.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  }
+
+  function TeamsTab() {
+    return (
+      <>
+        <div className="mb-3">
+          <h3 className="h5 mb-2">Add Team</h3>
+          <TeamForm onAddTeam={handleAddTeam} />
+        </div>
+
+        <div className="mb-2">
+          <label className="form-label">Search teams</label>
+          <div className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="Name, city, or color..."
+              value={teamsQuery}
+              onChange={(e) => setTeamsQuery(e.target.value)}
+            />
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setTeamsQuery("")}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {teamResults.length === 0 ? (
+          <p className="empty">
+            {teamsQ ? "No teams match your search." : "No teams yet."}
+          </p>
+        ) : (
+          <ul className="teams">
+            {teamResults.map((t) => (
+              <li key={t.id} className="team-card">
+                <div className="team-header">
+                  <div className="team-meta">
+                    {editingTeamId === t.id ? (
+                      <EditTeamForm
+                        initialTeam={t}
+                        onSave={(updates) => {
+                          updateTeam(t.id, updates);
+                          setEditingTeamId(null);
+                        }}
+                        onCancel={() => setEditingTeamId(null)}
+                      />
+                    ) : (
+                      <>
+                        <h3 className="team-name">
+                          <Link to={`/teams/${t.id}`} className="text-decoration-none">
+                            {t.name}
+                          </Link>
+                        </h3>
+                        <p className="team-sub mb-0">
+                          {t.city} • Color: {t.color} • {playersByTeam(t.id).length} players
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {editingTeamId !== t.id ? (
+                    <div className="team-actions">
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setEditingTeamId(t.id)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => {
+                          const ok = confirm(
+                            `Delete ${t.name}? This also deletes its players and games.`
+                          );
+                          if (!ok) return;
+                          deleteTeam(t.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );
+  }
+
+  function GamesTab() {
+    return (
+      <>
+        <div className="mb-2">
+          <label className="form-label">Search games</label>
+          <div className="d-flex gap-2">
+            <input
+              className="form-control"
+              placeholder="Date, time, court, or team name..."
+              value={gamesQuery}
+              onChange={(e) => setGamesQuery(e.target.value)}
+            />
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setGamesQuery("")}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {gameResults.length === 0 ? (
+          <p className="empty">
+            {gamesQ ? "No games match your search." : "No games scheduled yet."}
+          </p>
+        ) : (
+          <ul className="list-group">
+            {gameResults.map((g) => {
+              const final = isFinalGame(g);
+
+              return (
+                <li
+                  key={g.id}
+                  className="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <div className="fw-semibold">
+                      <Link to={`/games/${g.id}`} className="text-decoration-none">
+                        {teamLabel(g.homeTeamId)} vs {teamLabel(g.awayTeamId)}
+                      </Link>
+
+                      <span
+                        className={`badge ms-2 ${
+                          final ? "text-bg-success" : "text-bg-warning"
+                        }`}
+                      >
+                        {final ? "Final" : "Upcoming"}
+                      </span>
+                    </div>
+
+                    <small className="text-muted">
+                      {g.date} • {g.time} • {g.court}
+                    </small>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="text-muted">
+                      {final ? `${g.homeScore} - ${g.awayScore}` : "TBD"}
+                    </div>
+
+                    {!final ? (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => enterScorePrompt(g.id)}
+                      >
+                        Enter Score
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => enterScorePrompt(g.id)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => clearScore(g.id)}
+                        >
+                          Clear
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </>
+    );
+  }
+
+  function StandingsTab() {
+    return (
+      <>
+        <p className="text-muted mb-2">
+          Standings are computed from <b>Final</b> games only.
+        </p>
+
+        <div className="table-responsive">
+          <table className="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>GP</th>
+                <th>PF</th>
+                <th>PA</th>
+                <th>PD</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((r, idx) => (
+                <tr key={r.teamId}>
+                  <td>{idx + 1}</td>
+                  <td>
+                    <Link to={`/teams/${r.teamId}`} className="text-decoration-none">
+                      {r.name}
+                    </Link>
+                    <div className="text-muted small">{r.city}</div>
+                  </td>
+                  <td>{r.wins}</td>
+                  <td>{r.losses}</td>
+                  <td>{r.gp}</td>
+                  <td>{r.pf}</td>
+                  <td>{r.pa}</td>
+                  <td>{r.pd}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  }
+
+  function LeadersTab() {
+    return (
+      <StatLeaders players={players} teams={teams} games={games} boxScores={boxScores} />
+    );
+  }
+
+  // -----------------------------
+  // Home layout (header + tabs persist)
+  // -----------------------------
+
+  function HomeLayout() {
+    return (
+      <main className="app">
+        <header className="app-header">
+          <div>
+            <h1 className="app-title mb-0">Peninsula Hoopers League</h1>
+            <p className="app-subtitle mb-0">
+              Phase 1: CRUD + Games + Standings + Leaders
+            </p>
+          </div>
+
+          <button className="btn btn-outline-secondary" onClick={resetLeague}>
+            Reset Data
+          </button>
+        </header>
+
+        <hr className="divider" />
+
+        <section className="section">
+          <div className="d-flex justify-content-between align-items-center">
+            <h2 className="section-title mb-0">League</h2>
+            <small className="text-muted">
+              {players.length} players • {teams.length} teams • {games.length} games
+            </small>
+          </div>
+
+          {/* Tabs as ROUTES */}
+          <ul className="nav nav-tabs mt-3">
+            {[
+              { to: "players", label: "Players", badge: playerResults.length },
+              { to: "teams", label: "Teams", badge: teamResults.length },
+              { to: "games", label: "Games", badge: gameResults.length },
+              { to: "standings", label: "Standings" },
+              { to: "leaders", label: "Leaders" },
+            ].map((t) => (
+              <li className="nav-item" key={t.to}>
+                <NavLink
+                  to={t.to}
+                  end
+                  className={({ isActive }) =>
+                    `nav-link ${isActive ? "active" : ""}`
+                  }
+                >
+                  {t.label}
+                  {typeof t.badge === "number" ? (
+                    <span className="badge text-bg-secondary ms-1">{t.badge}</span>
+                  ) : null}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+
+          <div className="pt-3">
+            <Outlet />
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // -----------------------------
   // Routes
+  // -----------------------------
+
   return (
     <Routes>
-      <Route path="/" element={Home} />
+      {/* Home layout with nested tab routes */}
+      <Route path="/" element={<HomeLayout />}>
+        <Route index element={<Navigate to="players" replace />} />
+        <Route path="players" element={<PlayersTab />} />
+        <Route path="teams" element={<TeamsTab />} />
+        <Route path="games" element={<GamesTab />} />
+        <Route path="standings" element={<StandingsTab />} />
+        <Route path="leaders" element={<LeadersTab />} />
+      </Route>
+
+      {/* Profiles stay separate (same as before) */}
       <Route path="/teams/:teamId" element={<TeamProfile />} />
       <Route path="/players/:playerId" element={<PlayerProfile />} />
       <Route path="/games/:gameId" element={<GameProfile />} />
+
+      <Route path="*" element={<div className="p-4">Not found</div>} />
     </Routes>
   );
 }
