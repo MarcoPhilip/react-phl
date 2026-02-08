@@ -204,6 +204,9 @@ export function buildBoxScoresSeed(players, games) {
         pts: Math.floor(rand() * 26), // 0-25
         reb: Math.floor(rand() * 13), // 0-12
         ast: Math.floor(rand() * 11), // 0-10
+        stl: Math.floor(rand() * 5),  // 0-4
+        blk: Math.floor(rand() * 4),  // 0-3
+        tpm: Math.floor(rand() * 7),  // 0-6 (3s made)
       });
     }
 
@@ -216,6 +219,9 @@ export function buildBoxScoresSeed(players, games) {
         pts: Math.floor(rand() * 26),
         reb: Math.floor(rand() * 13),
         ast: Math.floor(rand() * 11),
+        stl: Math.floor(rand() * 5),  // 0-4
+        blk: Math.floor(rand() * 4),  // 0-3
+        tpm: Math.floor(rand() * 7),  // 0-6 (3s made)
       });
     }
   }

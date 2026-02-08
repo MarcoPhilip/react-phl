@@ -8,12 +8,7 @@ import { Routes, Route, Link } from "react-router-dom";
 
 // Import LocalStorage hook + seed data
 import useLocalStorage from "./hooks/useLocalStorage";
-import {
-  teamsSeed,
-  playersSeed,
-  gamesSeed,
-  boxScoresSeed,
-} from "./data/seed";
+import { teamsSeed, playersSeed, gamesSeed, boxScoresSeed } from "./data/seed";
 
 // Import forms + edit components you already have
 import TeamForm from "./components/TeamForm";
@@ -149,42 +144,48 @@ export default function App() {
     return t ? t.name : "Unknown team";
   }
 
-  // Normalize search strings
+  // Normalize search strings (used for UI text checks)
   const teamsQ = teamsQuery.trim().toLowerCase();
   const playersQ = playersQuery.trim().toLowerCase();
   const gamesQ = gamesQuery.trim().toLowerCase();
 
   // Filter teams for Teams tab
   const teamResults = useMemo(() => {
-    if (!teamsQ) return teams;
+    const q = teamsQuery.trim().toLowerCase();
+    if (!q) return teams;
+
     return teams.filter((t) => {
       return (
-        t.name.toLowerCase().includes(teamsQ) ||
-        t.city.toLowerCase().includes(teamsQ) ||
-        String(t.color || "").toLowerCase().includes(teamsQ)
+        t.name.toLowerCase().includes(q) ||
+        t.city.toLowerCase().includes(q) ||
+        String(t.color || "").toLowerCase().includes(q)
       );
     });
-  }, [teams, teamsQ]);
+  }, [teams, teamsQuery]);
 
   // Filter players for Players tab
   const playerResults = useMemo(() => {
-    if (!playersQ) return players;
+    const q = playersQuery.trim().toLowerCase();
+    if (!q) return players;
+
     return players.filter((p) => {
       return (
-        p.name.toLowerCase().includes(playersQ) ||
-        p.position.toLowerCase().includes(playersQ) ||
-        String(p.number).includes(playersQ)
+        p.name.toLowerCase().includes(q) ||
+        p.position.toLowerCase().includes(q) ||
+        String(p.number).includes(q)
       );
     });
-  }, [players, playersQ]);
+  }, [players, playersQuery]);
 
   // Filter games for Games tab (and sort chronologically)
   const gameResults = useMemo(() => {
+    const q = gamesQuery.trim().toLowerCase();
+
     const sorted = [...games].sort((a, b) =>
       `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)
     );
 
-    if (!gamesQ) return sorted;
+    if (!q) return sorted;
 
     return sorted.filter((g) => {
       const homeTeam = teams.find((t) => t.id === g.homeTeamId);
@@ -194,14 +195,14 @@ export default function App() {
       const away = awayTeam?.name.toLowerCase() || "";
 
       return (
-        String(g.date || "").toLowerCase().includes(gamesQ) ||
-        String(g.time || "").toLowerCase().includes(gamesQ) ||
-        String(g.court || "").toLowerCase().includes(gamesQ) ||
-        home.includes(gamesQ) ||
-        away.includes(gamesQ)
+        String(g.date || "").toLowerCase().includes(q) ||
+        String(g.time || "").toLowerCase().includes(q) ||
+        String(g.court || "").toLowerCase().includes(q) ||
+        home.includes(q) ||
+        away.includes(q)
       );
     });
-  }, [games, teams, gamesQ]);
+  }, [games, teams, gamesQuery]);
 
   // Compute standings from FINAL games only
   const standings = useMemo(() => {
@@ -369,7 +370,9 @@ export default function App() {
 
               {playerResults.length === 0 ? (
                 <p className="empty">
-                  {playersQ ? "No players match your search." : "No players yet."}
+                  {playersQ
+                    ? "No players match your search."
+                    : "No players yet."}
                 </p>
               ) : (
                 <ul className="roster">
@@ -536,7 +539,9 @@ export default function App() {
 
               {gameResults.length === 0 ? (
                 <p className="empty">
-                  {gamesQ ? "No games match your search." : "No games scheduled yet."}
+                  {gamesQ
+                    ? "No games match your search."
+                    : "No games scheduled yet."}
                 </p>
               ) : (
                 <ul className="list-group">
@@ -554,7 +559,8 @@ export default function App() {
                               to={`/games/${g.id}`}
                               className="text-decoration-none"
                             >
-                              {teamLabel(g.homeTeamId)} vs {teamLabel(g.awayTeamId)}
+                              {teamLabel(g.homeTeamId)} vs{" "}
+                              {teamLabel(g.awayTeamId)}
                             </Link>
 
                             <span
