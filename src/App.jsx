@@ -1,4 +1,7 @@
+// src/App.jsx
 import { useMemo, useState } from "react";
+import { Routes, Route, Link } from "react-router-dom";
+
 import useLocalStorage from "./hooks/useLocalStorage";
 import { teamsSeed, playersSeed } from "./data/seed";
 
@@ -6,6 +9,9 @@ import TeamForm from "./components/TeamForm";
 import PlayerForm from "./components/PlayerForm";
 import EditTeamForm from "./components/EditTeamForm";
 import EditPlayerForm from "./components/EditPlayerForm";
+
+import TeamProfile from "./pages/TeamProfile";
+import PlayerProfile from "./pages/PlayerProfile";
 
 export default function App() {
   // Teams stored in LocalStorage
@@ -23,7 +29,7 @@ export default function App() {
   // Search text for teams
   const [teamSearch, setTeamSearch] = useState("");
 
-  // Search text for players (filters roster display)
+  // Search text for players
   const [playerSearch, setPlayerSearch] = useState("");
 
   // Add a team (from TeamForm)
@@ -42,7 +48,9 @@ export default function App() {
   // Delete a team and cascade delete its players
   function deleteTeam(teamId) {
     setTeams((prevTeams) => prevTeams.filter((t) => t.id !== teamId));
-    setPlayers((prevPlayers) => prevPlayers.filter((p) => p.teamId !== teamId));
+    setPlayers((prevPlayers) =>
+      prevPlayers.filter((p) => p.teamId !== teamId)
+    );
   }
 
   // Add a player to a team (from PlayerForm)
@@ -104,13 +112,44 @@ export default function App() {
     });
   }
 
-  return (
+  // UI mode flags
+  const hasTeamQuery = teamSearch.trim().length > 0;
+  const hasPlayerQuery = playerSearch.trim().length > 0;
+
+  // If player search is active, show player results only
+  const playerOnlyMode = hasPlayerQuery;
+
+  // If team search is active (and not player search), show teams only (no roster)
+  const teamOnlyMode = hasTeamQuery && !hasPlayerQuery;
+
+  // Find players matching player search across ALL teams
+  const playerResults = useMemo(() => {
+    const q = playerSearch.trim().toLowerCase();
+    if (!q) return [];
+
+    return players.filter((p) => {
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.position.toLowerCase().includes(q) ||
+        String(p.number).includes(q)
+      );
+    });
+  }, [players, playerSearch]);
+
+  // Show team name for a player result
+  function teamNameFor(player) {
+    const team = teams.find((t) => t.id === player.teamId);
+    return team ? team.name : "Unknown team";
+  }
+
+  // Home page UI (kept as a component variable so we can route / cleanly)
+  const Home = (
     <main className="app">
       <header className="app-header">
         <div>
           <h1 className="app-title mb-0">Peninsula Hoopers League</h1>
           <p className="app-subtitle mb-0">
-            LocalStorage CRUD + search filters (Bootstrap CSS-only).
+            LocalStorage CRUD + search filters + profiles (React Router).
           </p>
         </div>
 
@@ -145,7 +184,7 @@ export default function App() {
           </div>
 
           <div className="col-12 col-md-6">
-            <label className="form-label">Search players (filters rosters)</label>
+            <label className="form-label">Search players</label>
             <input
               className="form-control"
               placeholder="Type player name, position, or jersey #…"
@@ -171,11 +210,60 @@ export default function App() {
 
       <hr className="divider" />
 
-      {/* Teams */}
+      {/* Results */}
       <section className="section">
-        <h2 className="section-title">Teams</h2>
+        <h2 className="section-title">
+          {playerOnlyMode ? "Player Results" : "Teams"}
+        </h2>
 
-        {filteredTeams.length === 0 ? (
+        {/* Player search active → show only players */}
+        {playerOnlyMode ? (
+          playerResults.length === 0 ? (
+            <p className="empty">No players match your search.</p>
+          ) : (
+            <ul className="roster">
+              {playerResults.map((p) => (
+                <li key={p.id} className="roster-item">
+                  {editingPlayerId === p.id ? (
+                    <EditPlayerForm
+                      initialPlayer={p}
+                      onSave={(updates) => {
+                        updatePlayer(p.id, updates);
+                        setEditingPlayerId(null);
+                      }}
+                      onCancel={() => setEditingPlayerId(null)}
+                    />
+                  ) : (
+                    <>
+                      <Link
+                        to={`/players/${p.id}`}
+                        className="roster-text text-decoration-none"
+                      >
+                        #{p.number} {p.name} ({p.position}) —{" "}
+                        <b>{teamNameFor(p)}</b>
+                      </Link>
+
+                      <div className="roster-actions">
+                        <button
+                          className="btn btn-sm btn-primary"
+                          onClick={() => setEditingPlayerId(p.id)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => removePlayer(p.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : filteredTeams.length === 0 ? (
           <p className="empty">No teams match your search.</p>
         ) : (
           <ul className="teams">
@@ -194,7 +282,14 @@ export default function App() {
                       />
                     ) : (
                       <>
-                        <h3 className="team-name">{t.name}</h3>
+                        <h3 className="team-name">
+                          <Link
+                            to={`/teams/${t.id}`}
+                            className="text-decoration-none"
+                          >
+                            {t.name}
+                          </Link>
+                        </h3>
                         <p className="team-sub mb-0">
                           {t.city} • Color: {t.color}
                         </p>
@@ -227,63 +322,77 @@ export default function App() {
                   ) : null}
                 </div>
 
-                <div className="team-body">
-                  <h4 className="subsection-title">Add Player</h4>
-                  <PlayerForm
-                    onAddPlayer={(player) => handleAddPlayer(t.id, player)}
-                  />
+                {/* Team search active → hide roster */}
+                {teamOnlyMode ? null : (
+                  <div className="team-body">
+                    <h4 className="subsection-title">Add Player</h4>
+                    <PlayerForm
+                      onAddPlayer={(player) => handleAddPlayer(t.id, player)}
+                    />
 
-                  <h4 className="subsection-title">Roster</h4>
+                    <h4 className="subsection-title">Roster</h4>
 
-                  {filteredRoster(t.id).length === 0 ? (
-                    <p className="empty">
-                      No players match your search for this team.
-                    </p>
-                  ) : (
-                    <ul className="roster">
-                      {filteredRoster(t.id).map((p) => (
-                        <li key={p.id} className="roster-item">
-                          {editingPlayerId === p.id ? (
-                            <EditPlayerForm
-                              initialPlayer={p}
-                              onSave={(updates) => {
-                                updatePlayer(p.id, updates);
-                                setEditingPlayerId(null);
-                              }}
-                              onCancel={() => setEditingPlayerId(null)}
-                            />
-                          ) : (
-                            <>
-                              <span className="roster-text">
-                                #{p.number} {p.name} ({p.position})
-                              </span>
-
-                              <div className="roster-actions">
-                                <button
-                                  className="btn btn-sm btn-primary"
-                                  onClick={() => setEditingPlayerId(p.id)}
+                    {filteredRoster(t.id).length === 0 ? (
+                      <p className="empty">
+                        No players match your search for this team.
+                      </p>
+                    ) : (
+                      <ul className="roster">
+                        {filteredRoster(t.id).map((p) => (
+                          <li key={p.id} className="roster-item">
+                            {editingPlayerId === p.id ? (
+                              <EditPlayerForm
+                                initialPlayer={p}
+                                onSave={(updates) => {
+                                  updatePlayer(p.id, updates);
+                                  setEditingPlayerId(null);
+                                }}
+                                onCancel={() => setEditingPlayerId(null)}
+                              />
+                            ) : (
+                              <>
+                                <Link
+                                  to={`/players/${p.id}`}
+                                  className="roster-text text-decoration-none"
                                 >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => removePlayer(p.id)}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                                  #{p.number} {p.name} ({p.position})
+                                </Link>
+
+                                <div className="roster-actions">
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => setEditingPlayerId(p.id)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-secondary"
+                                    onClick={() => removePlayer(p.id)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
     </main>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={Home} />
+      <Route path="/teams/:teamId" element={<TeamProfile />} />
+      <Route path="/players/:playerId" element={<PlayerProfile />} />
+    </Routes>
   );
 }
