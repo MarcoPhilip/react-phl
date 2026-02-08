@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 export default function useLocalStorage(key, initialValue) {
+  // 1) Load from LocalStorage once on first render
   const [value, setValue] = useState(() => {
     try {
       const raw = localStorage.getItem(key);
@@ -10,11 +11,12 @@ export default function useLocalStorage(key, initialValue) {
     }
   });
 
+  // 2) Save to LocalStorage whenever value changes
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // ignore write errors (rare, e.g. private mode limits)
+      // ignore storage write errors (rare)
     }
   }, [key, value]);
 
