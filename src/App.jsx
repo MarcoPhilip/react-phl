@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useLocalStorage from "./hooks/useLocalStorage";
 import { teamsSeed, playersSeed } from "./data/seed";
 
@@ -14,11 +14,17 @@ export default function App() {
   // Players stored in LocalStorage
   const [players, setPlayers] = useLocalStorage("phl_players", playersSeed);
 
-  // Track which team is currently being edited (null means none)
+  // Track which team is being edited
   const [editingTeamId, setEditingTeamId] = useState(null);
 
-  // Track which player is currently being edited (null means none)
+  // Track which player is being edited
   const [editingPlayerId, setEditingPlayerId] = useState(null);
+
+  // Search text for teams
+  const [teamSearch, setTeamSearch] = useState("");
+
+  // Search text for players (filters roster display)
+  const [playerSearch, setPlayerSearch] = useState("");
 
   // Add a team (from TeamForm)
   function handleAddTeam(team) {
@@ -52,39 +58,70 @@ export default function App() {
     );
   }
 
-  // Remove player
+  // Remove a player by id
   function removePlayer(playerId) {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }
 
-  // Reset data
+  // Reset LocalStorage back to seed data
   function resetLeague() {
     localStorage.removeItem("phl_teams");
     localStorage.removeItem("phl_players");
     window.location.reload();
   }
 
-  // Players for a team
+  // Get players for a team
   function playersByTeam(teamId) {
     return players.filter((p) => p.teamId === teamId);
+  }
+
+  // Filter teams by teamSearch (name, city, color)
+  const filteredTeams = useMemo(() => {
+    const q = teamSearch.trim().toLowerCase();
+    if (!q) return teams;
+
+    return teams.filter((t) => {
+      return (
+        t.name.toLowerCase().includes(q) ||
+        t.city.toLowerCase().includes(q) ||
+        String(t.color || "").toLowerCase().includes(q)
+      );
+    });
+  }, [teams, teamSearch]);
+
+  // Filter roster by playerSearch (name, position, jersey number)
+  function filteredRoster(teamId) {
+    const roster = playersByTeam(teamId);
+    const q = playerSearch.trim().toLowerCase();
+    if (!q) return roster;
+
+    return roster.filter((p) => {
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.position.toLowerCase().includes(q) ||
+        String(p.number).includes(q)
+      );
+    });
   }
 
   return (
     <main className="app">
       <header className="app-header">
-        <h1 className="app-title">Peninsula Hoopers League</h1>
-
-        <div className="app-actions">
-          <button className="btn" onClick={resetLeague}>Reset Data</button>
+        <div>
+          <h1 className="app-title mb-0">Peninsula Hoopers League</h1>
+          <p className="app-subtitle mb-0">
+            LocalStorage CRUD + search filters (Bootstrap CSS-only).
+          </p>
         </div>
-      </header>
 
-      <p className="app-subtitle">
-        CRUD Phase 1: create, update, and delete teams & players (LocalStorage).
-      </p>
+        <button className="btn btn-outline-secondary" onClick={resetLeague}>
+          Reset Data
+        </button>
+      </header>
 
       <hr className="divider" />
 
+      {/* Add Team */}
       <section className="section">
         <h2 className="section-title">Add Team</h2>
         <TeamForm onAddTeam={handleAddTeam} />
@@ -92,14 +129,57 @@ export default function App() {
 
       <hr className="divider" />
 
+      {/* Search Filters */}
+      <section className="section">
+        <h2 className="section-title">Search</h2>
+
+        <div className="row g-2">
+          <div className="col-12 col-md-6">
+            <label className="form-label">Search teams</label>
+            <input
+              className="form-control"
+              placeholder="Type team name, city, or color…"
+              value={teamSearch}
+              onChange={(e) => setTeamSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="col-12 col-md-6">
+            <label className="form-label">Search players (filters rosters)</label>
+            <input
+              className="form-control"
+              placeholder="Type player name, position, or jersey #…"
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-2">
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            type="button"
+            onClick={() => {
+              setTeamSearch("");
+              setPlayerSearch("");
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* Teams */}
       <section className="section">
         <h2 className="section-title">Teams</h2>
 
-        {teams.length === 0 ? (
-          <p className="empty">No teams yet. Add one above.</p>
+        {filteredTeams.length === 0 ? (
+          <p className="empty">No teams match your search.</p>
         ) : (
           <ul className="teams">
-            {teams.map((t) => (
+            {filteredTeams.map((t) => (
               <li key={t.id} className="team-card">
                 <div className="team-header">
                   <div className="team-meta">
@@ -115,7 +195,7 @@ export default function App() {
                     ) : (
                       <>
                         <h3 className="team-name">{t.name}</h3>
-                        <p className="team-sub">
+                        <p className="team-sub mb-0">
                           {t.city} • Color: {t.color}
                         </p>
                       </>
@@ -124,12 +204,19 @@ export default function App() {
 
                   {editingTeamId !== t.id ? (
                     <div className="team-actions">
-                      <button className="btn" onClick={() => setEditingTeamId(t.id)}>Edit</button>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setEditingTeamId(t.id)}
+                      >
+                        Edit
+                      </button>
 
                       <button
-                        className="btn btn-danger"
+                        className="btn btn-sm btn-outline-danger"
                         onClick={() => {
-                          const ok = confirm(`Delete ${t.name}? This also deletes its players.`);
+                          const ok = confirm(
+                            `Delete ${t.name}? This also deletes its players.`
+                          );
                           if (!ok) return;
                           deleteTeam(t.id);
                         }}
@@ -142,15 +229,19 @@ export default function App() {
 
                 <div className="team-body">
                   <h4 className="subsection-title">Add Player</h4>
-                  <PlayerForm onAddPlayer={(player) => handleAddPlayer(t.id, player)} />
+                  <PlayerForm
+                    onAddPlayer={(player) => handleAddPlayer(t.id, player)}
+                  />
 
                   <h4 className="subsection-title">Roster</h4>
 
-                  {playersByTeam(t.id).length === 0 ? (
-                    <p className="empty">No players yet.</p>
+                  {filteredRoster(t.id).length === 0 ? (
+                    <p className="empty">
+                      No players match your search for this team.
+                    </p>
                   ) : (
                     <ul className="roster">
-                      {playersByTeam(t.id).map((p) => (
+                      {filteredRoster(t.id).map((p) => (
                         <li key={p.id} className="roster-item">
                           {editingPlayerId === p.id ? (
                             <EditPlayerForm
@@ -168,8 +259,18 @@ export default function App() {
                               </span>
 
                               <div className="roster-actions">
-                                <button className="btn" onClick={() => setEditingPlayerId(p.id)}>Edit</button>
-                                <button className="btn btn-ghost" onClick={() => removePlayer(p.id)}>Remove</button>
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => setEditingPlayerId(p.id)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => removePlayer(p.id)}
+                                >
+                                  Remove
+                                </button>
                               </div>
                             </>
                           )}
