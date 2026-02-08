@@ -1,101 +1,162 @@
 // src/App.jsx
+
+// Import React hooks for state + memoized filtering
 import { useMemo, useState } from "react";
+
+// Import React Router pieces for routing + links
 import { Routes, Route, Link } from "react-router-dom";
 
+// Import LocalStorage hook + seed data
 import useLocalStorage from "./hooks/useLocalStorage";
-import { teamsSeed, playersSeed, gamesSeed } from "./data/seed";
+import {
+  teamsSeed,
+  playersSeed,
+  gamesSeed,
+  boxScoresSeed,
+} from "./data/seed";
 
+// Import forms + edit components you already have
 import TeamForm from "./components/TeamForm";
 import EditTeamForm from "./components/EditTeamForm";
 import EditPlayerForm from "./components/EditPlayerForm";
 
+// Import pages
 import TeamProfile from "./pages/TeamProfile";
 import PlayerProfile from "./pages/PlayerProfile";
+import GameProfile from "./pages/GameProfile";
+
+// Import the Stat Leaders tab component
+import StatLeaders from "./components/StatLeaders";
 
 export default function App() {
-  // LocalStorage state
+  // Store teams in LocalStorage (fallback to teamsSeed on first load)
   const [teams, setTeams] = useLocalStorage("phl_teams", teamsSeed);
-  const [players, setPlayers] = useLocalStorage("phl_players", playersSeed);
-  const [games] = useLocalStorage("phl_games", gamesSeed);
 
-  // Editing state (Home lists)
+  // Store players in LocalStorage (fallback to playersSeed on first load)
+  const [players, setPlayers] = useLocalStorage("phl_players", playersSeed);
+
+  // Store games in LocalStorage (fallback to gamesSeed on first load)
+  const [games, setGames] = useLocalStorage("phl_games", gamesSeed);
+
+  // Store box scores in LocalStorage (fallback to boxScoresSeed on first load)
+  const [boxScores] = useLocalStorage("phl_boxscores", boxScoresSeed);
+
+  // Track which team is being edited (inline edit)
   const [editingTeamId, setEditingTeamId] = useState(null);
+
+  // Track which player is being edited (inline edit)
   const [editingPlayerId, setEditingPlayerId] = useState(null);
 
-  // Tabs
-  const [activeTab, setActiveTab] = useState("players"); // players | teams | games
+  // Track current active tab
+  const [activeTab, setActiveTab] = useState("players"); // players | teams | games | standings | leaders
 
-  // Search per tab
+  // Search input for Players tab
   const [playersQuery, setPlayersQuery] = useState("");
+
+  // Search input for Teams tab
   const [teamsQuery, setTeamsQuery] = useState("");
+
+  // Search input for Games tab
   const [gamesQuery, setGamesQuery] = useState("");
 
-  // -------------------------
-  // CRUD: Teams
-  // -------------------------
+  // Add a new team from TeamForm
   function handleAddTeam(team) {
     const newTeam = { id: crypto.randomUUID(), ...team };
     setTeams((prev) => [newTeam, ...prev]);
   }
 
+  // Update a team by id
   function updateTeam(teamId, updates) {
     setTeams((prev) =>
       prev.map((t) => (t.id === teamId ? { ...t, ...updates } : t))
     );
   }
 
+  // Delete a team + cascade delete its players + its games
   function deleteTeam(teamId) {
     setTeams((prev) => prev.filter((t) => t.id !== teamId));
     setPlayers((prev) => prev.filter((p) => p.teamId !== teamId));
+    setGames((prev) =>
+      prev.filter((g) => g.homeTeamId !== teamId && g.awayTeamId !== teamId)
+    );
   }
 
-  // -------------------------
-  // CRUD: Players
-  // -------------------------
+  // Update a player by id
   function updatePlayer(playerId, updates) {
     setPlayers((prev) =>
       prev.map((p) => (p.id === playerId ? { ...p, ...updates } : p))
     );
   }
 
+  // Remove a player by id
   function removePlayer(playerId) {
     setPlayers((prev) => prev.filter((p) => p.id !== playerId));
   }
 
-  // -------------------------
-  // Utilities
-  // -------------------------
+  // Is a game final (has both scores)?
+  function isFinalGame(g) {
+    return g.homeScore != null && g.awayScore != null;
+  }
+
+  // Update a game by id
+  function updateGame(gameId, updates) {
+    setGames((prev) =>
+      prev.map((g) => (g.id === gameId ? { ...g, ...updates } : g))
+    );
+  }
+
+  // Clear score for a game
+  function clearScore(gameId) {
+    updateGame(gameId, { homeScore: null, awayScore: null });
+  }
+
+  // Prompt user to enter score (quick MVP)
+  function enterScorePrompt(gameId) {
+    const hs = prompt("Home score?", "0");
+    const as = prompt("Away score?", "0");
+    if (hs == null || as == null) return;
+
+    const homeScore = Number(hs);
+    const awayScore = Number(as);
+    if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return;
+
+    updateGame(gameId, { homeScore, awayScore });
+  }
+
+  // Reset league data in LocalStorage
   function resetLeague() {
     localStorage.removeItem("phl_teams");
     localStorage.removeItem("phl_players");
     localStorage.removeItem("phl_games");
+    localStorage.removeItem("phl_boxscores");
     window.location.reload();
   }
 
+  // Get players for a team
   function playersByTeam(teamId) {
     return players.filter((p) => p.teamId === teamId);
   }
 
+  // Team name for a player
   function teamNameFor(player) {
     const team = teams.find((t) => t.id === player.teamId);
     return team ? team.name : "Unknown team";
   }
 
+  // Label team by id
   function teamLabel(teamId) {
     const t = teams.find((x) => x.id === teamId);
     return t ? t.name : "Unknown team";
   }
 
-  // -------------------------
-  // Filters per tab
-  // -------------------------
+  // Normalize search strings
   const teamsQ = teamsQuery.trim().toLowerCase();
   const playersQ = playersQuery.trim().toLowerCase();
   const gamesQ = gamesQuery.trim().toLowerCase();
 
+  // Filter teams for Teams tab
   const teamResults = useMemo(() => {
     if (!teamsQ) return teams;
-
     return teams.filter((t) => {
       return (
         t.name.toLowerCase().includes(teamsQ) ||
@@ -105,9 +166,9 @@ export default function App() {
     });
   }, [teams, teamsQ]);
 
+  // Filter players for Players tab
   const playerResults = useMemo(() => {
     if (!playersQ) return players;
-
     return players.filter((p) => {
       return (
         p.name.toLowerCase().includes(playersQ) ||
@@ -117,6 +178,7 @@ export default function App() {
     });
   }, [players, playersQ]);
 
+  // Filter games for Games tab (and sort chronologically)
   const gameResults = useMemo(() => {
     const sorted = [...games].sort((a, b) =>
       `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)
@@ -141,15 +203,67 @@ export default function App() {
     });
   }, [games, teams, gamesQ]);
 
-  // -------------------------
+  // Compute standings from FINAL games only
+  const standings = useMemo(() => {
+    const rows = teams.map((t) => ({
+      teamId: t.id,
+      name: t.name,
+      city: t.city,
+      wins: 0,
+      losses: 0,
+      gp: 0,
+      pf: 0,
+      pa: 0,
+      pd: 0,
+    }));
+
+    const byId = new Map(rows.map((r) => [r.teamId, r]));
+    const finals = games.filter(isFinalGame);
+
+    for (const g of finals) {
+      const home = byId.get(g.homeTeamId);
+      const away = byId.get(g.awayTeamId);
+      if (!home || !away) continue;
+
+      home.gp += 1;
+      away.gp += 1;
+
+      home.pf += g.homeScore;
+      home.pa += g.awayScore;
+
+      away.pf += g.awayScore;
+      away.pa += g.homeScore;
+
+      if (g.homeScore > g.awayScore) {
+        home.wins += 1;
+        away.losses += 1;
+      } else if (g.awayScore > g.homeScore) {
+        away.wins += 1;
+        home.losses += 1;
+      }
+    }
+
+    for (const r of rows) r.pd = r.pf - r.pa;
+
+    rows.sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.pd !== a.pd) return b.pd - a.pd;
+      if (b.pf !== a.pf) return b.pf - a.pf;
+      return a.name.localeCompare(b.name);
+    });
+
+    return rows;
+  }, [teams, games]);
+
   // Home UI
-  // -------------------------
   const Home = (
     <main className="app">
       <header className="app-header">
         <div>
           <h1 className="app-title mb-0">Peninsula Hoopers League</h1>
-          <p className="app-subtitle mb-0">Players • Teams • Games</p>
+          <p className="app-subtitle mb-0">
+            Phase 1: CRUD + Games + Standings + Leaders
+          </p>
         </div>
 
         <button className="btn btn-outline-secondary" onClick={resetLeague}>
@@ -161,7 +275,7 @@ export default function App() {
 
       <section className="section">
         <div className="d-flex justify-content-between align-items-center">
-          <h2 className="section-title mb-0">Browse</h2>
+          <h2 className="section-title mb-0">League</h2>
           <small className="text-muted">
             {players.length} players • {teams.length} teams • {games.length} games
           </small>
@@ -205,6 +319,26 @@ export default function App() {
               <span className="badge text-bg-secondary ms-1">
                 {gameResults.length}
               </span>
+            </button>
+          </li>
+
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === "standings" ? "active" : ""}`}
+              onClick={() => setActiveTab("standings")}
+            >
+              Standings
+            </button>
+          </li>
+
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === "leaders" ? "active" : ""}`}
+              onClick={() => setActiveTab("leaders")}
+            >
+              Leaders
             </button>
           </li>
         </ul>
@@ -360,7 +494,7 @@ export default function App() {
                               className="btn btn-sm btn-outline-danger"
                               onClick={() => {
                                 const ok = confirm(
-                                  `Delete ${t.name}? This also deletes its players.`
+                                  `Delete ${t.name}? This also deletes its players and games.`
                                 );
                                 if (!ok) return;
                                 deleteTeam(t.id);
@@ -406,54 +540,143 @@ export default function App() {
                 </p>
               ) : (
                 <ul className="list-group">
-                  {gameResults.map((g) => (
-                    <li
-                      key={g.id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <div className="fw-semibold">
-                          <Link
-                            to={`/teams/${g.homeTeamId}`}
-                            className="text-decoration-none"
-                          >
-                            {teamLabel(g.homeTeamId)}
-                          </Link>{" "}
-                          vs{" "}
-                          <Link
-                            to={`/teams/${g.awayTeamId}`}
-                            className="text-decoration-none"
-                          >
-                            {teamLabel(g.awayTeamId)}
-                          </Link>
+                  {gameResults.map((g) => {
+                    const final = isFinalGame(g);
+
+                    return (
+                      <li
+                        key={g.id}
+                        className="list-group-item d-flex justify-content-between align-items-center"
+                      >
+                        <div>
+                          <div className="fw-semibold">
+                            <Link
+                              to={`/games/${g.id}`}
+                              className="text-decoration-none"
+                            >
+                              {teamLabel(g.homeTeamId)} vs {teamLabel(g.awayTeamId)}
+                            </Link>
+
+                            <span
+                              className={`badge ms-2 ${
+                                final ? "text-bg-success" : "text-bg-warning"
+                              }`}
+                            >
+                              {final ? "Final" : "Upcoming"}
+                            </span>
+                          </div>
+
+                          <small className="text-muted">
+                            {g.date} • {g.time} • {g.court}
+                          </small>
                         </div>
 
-                        <small className="text-muted">
-                          {g.date} • {g.time} • {g.court}
-                        </small>
-                      </div>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="text-muted">
+                            {final ? `${g.homeScore} - ${g.awayScore}` : "TBD"}
+                          </div>
 
-                      <div className="text-muted">
-                        {g.homeScore == null || g.awayScore == null
-                          ? "TBD"
-                          : `${g.homeScore} - ${g.awayScore}`}
-                      </div>
-                    </li>
-                  ))}
+                          {!final ? (
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => enterScorePrompt(g.id)}
+                            >
+                              Enter Score
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => enterScorePrompt(g.id)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => clearScore(g.id)}
+                              >
+                                Clear
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </>
+          ) : null}
+
+          {/* STANDINGS TAB */}
+          {activeTab === "standings" ? (
+            <>
+              <p className="text-muted mb-2">
+                Standings are computed from <b>Final</b> games only.
+              </p>
+
+              <div className="table-responsive">
+                <table className="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Team</th>
+                      <th>W</th>
+                      <th>L</th>
+                      <th>GP</th>
+                      <th>PF</th>
+                      <th>PA</th>
+                      <th>PD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {standings.map((r, idx) => (
+                      <tr key={r.teamId}>
+                        <td>{idx + 1}</td>
+                        <td>
+                          <Link
+                            to={`/teams/${r.teamId}`}
+                            className="text-decoration-none"
+                          >
+                            {r.name}
+                          </Link>
+                          <div className="text-muted small">{r.city}</div>
+                        </td>
+                        <td>{r.wins}</td>
+                        <td>{r.losses}</td>
+                        <td>{r.gp}</td>
+                        <td>{r.pf}</td>
+                        <td>{r.pa}</td>
+                        <td>{r.pd}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : null}
+
+          {/* LEADERS TAB */}
+          {activeTab === "leaders" ? (
+            <StatLeaders
+              players={players}
+              teams={teams}
+              games={games}
+              boxScores={boxScores}
+            />
           ) : null}
         </div>
       </section>
     </main>
   );
 
+  // Routes
   return (
     <Routes>
       <Route path="/" element={Home} />
       <Route path="/teams/:teamId" element={<TeamProfile />} />
       <Route path="/players/:playerId" element={<PlayerProfile />} />
+      <Route path="/games/:gameId" element={<GameProfile />} />
     </Routes>
   );
 }

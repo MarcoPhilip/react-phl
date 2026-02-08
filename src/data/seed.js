@@ -158,3 +158,70 @@ export const gamesSeed = [
     awayScore: 68,
   },
 ];
+
+// Helpers: deterministic random so seed stays consistent across refresh
+function mulberry32(seed) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickN(arr, n, rand) {
+  const copy = [...arr];
+  const out = [];
+  while (copy.length && out.length < n) {
+    const idx = Math.floor(rand() * copy.length);
+    out.push(copy.splice(idx, 1)[0]);
+  }
+  return out;
+}
+
+// Build box scores from players + games
+export function buildBoxScoresSeed(players, games) {
+  const rand = mulberry32(12345);
+
+  const results = [];
+  let idCounter = 1;
+
+  for (const g of games) {
+    // create stats for each team in the game
+    const homePlayers = players.filter((p) => p.teamId === g.homeTeamId);
+    const awayPlayers = players.filter((p) => p.teamId === g.awayTeamId);
+
+    // pick up to 5 players (or fewer if not enough)
+    const homeRotation = pickN(homePlayers, Math.min(5, homePlayers.length), rand);
+    const awayRotation = pickN(awayPlayers, Math.min(5, awayPlayers.length), rand);
+
+    for (const p of homeRotation) {
+      results.push({
+        id: `bs${idCounter++}`,
+        gameId: g.id,
+        playerId: p.id,
+        teamId: p.teamId,
+        pts: Math.floor(rand() * 26), // 0-25
+        reb: Math.floor(rand() * 13), // 0-12
+        ast: Math.floor(rand() * 11), // 0-10
+      });
+    }
+
+    for (const p of awayRotation) {
+      results.push({
+        id: `bs${idCounter++}`,
+        gameId: g.id,
+        playerId: p.id,
+        teamId: p.teamId,
+        pts: Math.floor(rand() * 26),
+        reb: Math.floor(rand() * 13),
+        ast: Math.floor(rand() * 11),
+      });
+    }
+  }
+
+  return results;
+}
+
+// Default seed (generated from your existing seeds)
+export const boxScoresSeed = buildBoxScoresSeed(playersSeed, gamesSeed);
