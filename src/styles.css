@@ -1,0 +1,49 @@
+/* Page layout */
+.app {
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Sections */
+.section {
+  margin-top: 16px;
+}
+
+.divider {
+  margin: 18px 0;
+}
+
+/* Team card */
+.team-card {
+  border: 1px solid #eee;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+/* Team header */
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Roster list */
+.roster {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* Form layout */
+.form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
