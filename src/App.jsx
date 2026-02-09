@@ -16,6 +16,8 @@ import TeamProfile from "./pages/TeamProfile";
 import PlayerProfile from "./pages/PlayerProfile";
 import GameProfile from "./pages/GameProfile";
 
+import { LeagueProvider } from "./context/LeagueProvider";
+
 export default function App() {
   // Persistent league data
   const [teams, setTeams] = useLocalStorage("phl_teams", teamsSeed);
@@ -103,7 +105,7 @@ export default function App() {
   const playersQ = playersQuery.trim().toLowerCase();
   const gamesQ = gamesQuery.trim().toLowerCase();
 
-  // ✅ Stable lookup map (fixes React Compiler memo warning)
+  // Stable lookup map (fixes memo/compiler warnings)
   const teamNameById = useMemo(() => {
     return new Map(teams.map((t) => [t.id, t.name]));
   }, [teams]);
@@ -203,20 +205,59 @@ export default function App() {
     return rows;
   }, [teams, games]);
 
+  // Context value (tabs can read this later, even if they still use props today)
+  const leagueValue = {
+    // data
+    teams,
+    players,
+    games,
+    boxScores,
+    standings,
+    teamResults,
+    playerResults,
+    gameResults,
+    teamNameById,
+
+    // UI state
+    editingTeamId,
+    setEditingTeamId,
+    editingPlayerId,
+    setEditingPlayerId,
+    playersQuery,
+    setPlayersQuery,
+    teamsQuery,
+    setTeamsQuery,
+    gamesQuery,
+    setGamesQuery,
+
+    // actions
+    handleAddTeam,
+    updateTeam,
+    deleteTeam,
+    updatePlayer,
+    removePlayer,
+    isFinalGame,
+    enterScorePrompt,
+    clearScore,
+    resetLeague,
+  };
+
   return (
     <Routes>
       <Route
         path="/"
         element={
-          <HomeLayout
-            resetLeague={resetLeague}
-            playersCount={players.length}
-            teamsCount={teams.length}
-            gamesCount={games.length}
-            playersBadge={playerResults.length}
-            teamsBadge={teamResults.length}
-            gamesBadge={gameResults.length}
-          />
+          <LeagueProvider value={leagueValue}>
+            <HomeLayout
+              resetLeague={resetLeague}
+              playersCount={players.length}
+              teamsCount={teams.length}
+              gamesCount={games.length}
+              playersBadge={playerResults.length}
+              teamsBadge={teamResults.length}
+              gamesBadge={gameResults.length}
+            />
+          </LeagueProvider>
         }
       >
         <Route index element={<Navigate to="players" replace />} />
