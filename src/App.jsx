@@ -265,19 +265,8 @@ export default function App() {
         <Route path="teams" element={<TeamsTab />} />
         <Route path="games" element={<GamesTab />} />
 
-        <Route path="standings" element={<StandingsTab standings={standings} />} />
-
-        <Route
-          path="leaders"
-          element={
-            <LeadersTab
-              players={players}
-              teams={teams}
-              games={games}
-              boxScores={boxScores}
-            />
-          }
-        />
+        <Route path="standings" element={<StandingsTab />} />
+        <Route path="leaders" element={<LeadersTab />} />
       </Route>
 
       {/* Profiles */}

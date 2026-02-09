@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useLeague } from "../context/useLeague";
 
-export default function StandingsTab({ standings }) {
+export default function StandingsTab() {
+  const { standings } = useLeague();
+
   return (
     <>
       <p className="text-muted mb-2">
