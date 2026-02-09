@@ -23,7 +23,7 @@ export default function App() {
   const [teams, setTeams] = useLocalStorage("phl_teams", teamsSeed);
   const [players, setPlayers] = useLocalStorage("phl_players", playersSeed);
   const [games, setGames] = useLocalStorage("phl_games", gamesSeed);
-  const [boxScores] = useLocalStorage("phl_boxscores", boxScoresSeed);
+  const [boxScores, setBoxScores] = useLocalStorage("phl_boxscores", boxScoresSeed);
 
   // UI state
   const [editingTeamId, setEditingTeamId] = useState(null);
@@ -78,6 +78,44 @@ export default function App() {
       setPlayers((prev) => prev.filter((p) => p.id !== playerId));
     },
     [setPlayers]
+  );
+
+  // Box scores (one row per player per game)
+  const upsertBoxScore = useCallback(
+    ({ gameId, playerId, teamId, stats }) => {
+      if (!gameId || !playerId) return;
+
+      setBoxScores((prev) => {
+        const idx = prev.findIndex(
+          (row) => row.gameId === gameId && row.playerId === playerId
+        );
+
+        // Normalize numeric stats (undefined -> 0)
+        const normalized = Object.fromEntries(
+          Object.entries(stats || {}).map(([k, v]) => [k, Number(v) || 0])
+        );
+
+        if (idx === -1) {
+          const newRow = {
+            id: crypto.randomUUID(),
+            gameId,
+            playerId,
+            teamId,
+            ...normalized,
+          };
+          return [newRow, ...prev];
+        }
+
+        const copy = [...prev];
+        copy[idx] = {
+          ...copy[idx],
+          teamId,
+          ...normalized,
+        };
+        return copy;
+      });
+    },
+    [setBoxScores]
   );
 
   // Game helpers
@@ -262,6 +300,7 @@ export default function App() {
       deleteTeam,
       updatePlayer,
       removePlayer,
+      upsertBoxScore,
       isFinalGame,
       enterScorePrompt,
       clearScore,
@@ -287,6 +326,7 @@ export default function App() {
       deleteTeam,
       updatePlayer,
       removePlayer,
+      upsertBoxScore,
       isFinalGame,
       enterScorePrompt,
       clearScore,
