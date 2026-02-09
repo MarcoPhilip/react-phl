@@ -217,6 +217,11 @@ export default function App() {
     });
   }, [games, gamesQ, teamNameById]);
 
+  // Final game ids (used for averages/leaderboards)
+  const finalGameIds = useMemo(() => {
+    return new Set(games.filter(isFinalGame).map((g) => g.id));
+  }, [games, isFinalGame]);
+
   // Standings from FINAL games only
   const standings = useMemo(() => {
     const rows = teams.map((t) => ({
@@ -268,6 +273,52 @@ export default function App() {
     return rows;
   }, [teams, games, isFinalGame]);
 
+  // Player averages computed from box scores (Final games only)
+  // Map: playerId -> { gp, pts, reb, ast, stl, blk, tov, ppg, rpg, apg, spg, bpg, topg }
+  const playerAveragesById = useMemo(() => {
+    const totals = new Map();
+
+    for (const row of boxScores) {
+      if (!finalGameIds.has(row.gameId)) continue;
+
+      const cur = totals.get(row.playerId) ?? {
+        gp: 0,
+        pts: 0,
+        reb: 0,
+        ast: 0,
+        stl: 0,
+        blk: 0,
+        tov: 0,
+      };
+
+      cur.gp += 1;
+      cur.pts += Number(row.pts) || 0;
+      cur.reb += Number(row.reb) || 0;
+      cur.ast += Number(row.ast) || 0;
+      cur.stl += Number(row.stl) || 0;
+      cur.blk += Number(row.blk) || 0;
+      cur.tov += Number(row.tov) || 0;
+
+      totals.set(row.playerId, cur);
+    }
+
+    const avgs = new Map();
+    for (const [playerId, t] of totals.entries()) {
+      const gp = t.gp || 1;
+      avgs.set(playerId, {
+        ...t,
+        ppg: t.pts / gp,
+        rpg: t.reb / gp,
+        apg: t.ast / gp,
+        spg: t.stl / gp,
+        bpg: t.blk / gp,
+        topg: t.tov / gp,
+      });
+    }
+
+    return avgs;
+  }, [boxScores, finalGameIds]);
+
   // Context value (memoized so context consumers don’t re-render on every App render)
   const leagueValue = useMemo(
     () => ({
@@ -276,6 +327,8 @@ export default function App() {
       players,
       games,
       boxScores,
+      finalGameIds,
+      playerAveragesById,
       standings,
       teamResults,
       playerResults,
@@ -311,6 +364,8 @@ export default function App() {
       players,
       games,
       boxScores,
+      finalGameIds,
+      playerAveragesById,
       standings,
       teamResults,
       playerResults,
