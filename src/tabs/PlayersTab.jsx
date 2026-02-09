@@ -1,17 +1,21 @@
 import { Link } from "react-router-dom";
 import EditPlayerForm from "../components/EditPlayerForm";
+import { useLeague } from "../context/useLeague";
 
-export default function PlayersTab({
-  playersQuery,
-  setPlayersQuery,
-  playerResults,
-  playersQ,
-  editingPlayerId,
-  setEditingPlayerId,
-  updatePlayer,
-  removePlayer,
-  teamNameById,
-}) {
+export default function PlayersTab() {
+  const {
+    playersQuery,
+    setPlayersQuery,
+    playerResults,
+    editingPlayerId,
+    setEditingPlayerId,
+    updatePlayer,
+    removePlayer,
+    teamNameById,
+  } = useLeague();
+
+  const playersQ = playersQuery.trim().toLowerCase();
+
   return (
     <>
       <div className="mb-2">
@@ -52,7 +56,10 @@ export default function PlayersTab({
                 />
               ) : (
                 <>
-                  <Link to={`/players/${p.id}`} className="roster-text text-decoration-none">
+                  <Link
+                    to={`/players/${p.id}`}
+                    className="roster-text text-decoration-none"
+                  >
                     #{p.number} {p.name} ({p.position}) —{" "}
                     <b>{teamNameById.get(p.teamId) ?? "Unknown team"}</b>
                   </Link>
