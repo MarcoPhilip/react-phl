@@ -81,6 +81,19 @@ export default function App() {
   );
 
   // Game helpers
+  const addGame = useCallback(
+    (game) => {
+      const newGame = {
+        id: crypto.randomUUID(),
+        homeScore: null,
+        awayScore: null,
+        ...game,
+      };
+      setGames((prev) => [newGame, ...prev]);
+    },
+    [setGames]
+  );
+
   const isFinalGame = useCallback((g) => {
     return g.homeScore != null && g.awayScore != null;
   }, []);
@@ -260,6 +273,7 @@ export default function App() {
       handleAddTeam,
       updateTeam,
       deleteTeam,
+      addGame,
       updatePlayer,
       removePlayer,
       isFinalGame,
@@ -285,6 +299,7 @@ export default function App() {
       handleAddTeam,
       updateTeam,
       deleteTeam,
+      addGame,
       updatePlayer,
       removePlayer,
       isFinalGame,
