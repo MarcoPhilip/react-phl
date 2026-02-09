@@ -390,30 +390,48 @@ export default function App() {
   );
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <LeagueProvider value={leagueValue}>
-            <HomeLayout />
-          </LeagueProvider>
-        }
-      >
-        <Route index element={<Navigate to="players" replace />} />
-        <Route path="players" element={<PlayersTab />} />
-        <Route path="teams" element={<TeamsTab />} />
-        <Route path="games" element={<GamesTab />} />
+    <LeagueProvider value={leagueValue}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomeLayout
+              resetLeague={resetLeague}
+              playersCount={players.length}
+              teamsCount={teams.length}
+              gamesCount={games.length}
+              playersBadge={playerResults.length}
+              teamsBadge={teamResults.length}
+              gamesBadge={gameResults.length}
+            />
+          }
+        >
+          <Route index element={<Navigate to="players" replace />} />
+          <Route path="players" element={<PlayersTab />} />
+          <Route path="teams" element={<TeamsTab />} />
+          <Route path="games" element={<GamesTab />} />
 
-        <Route path="standings" element={<StandingsTab />} />
-        <Route path="leaders" element={<LeadersTab />} />
-      </Route>
+          <Route path="standings" element={<StandingsTab standings={standings} />} />
+          <Route
+            path="leaders"
+            element={
+              <LeadersTab
+                players={players}
+                teams={teams}
+                games={games}
+                boxScores={boxScores}
+              />
+            }
+          />
+        </Route>
 
-      {/* Profiles */}
-      <Route path="/teams/:teamId" element={<TeamProfile />} />
-      <Route path="/players/:playerId" element={<PlayerProfile />} />
-      <Route path="/games/:gameId" element={<GameProfile />} />
+        {/* Profiles */}
+        <Route path="/teams/:teamId" element={<TeamProfile />} />
+        <Route path="/players/:playerId" element={<PlayerProfile />} />
+        <Route path="/games/:gameId" element={<GameProfile />} />
 
-      <Route path="*" element={<div className="p-4">Not found</div>} />
-    </Routes>
+        <Route path="*" element={<div className="p-4">Not found</div>} />
+      </Routes>
+    </LeagueProvider>
   );
 }
