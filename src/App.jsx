@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import useLocalStorage from "./hooks/useLocalStorage";
@@ -34,71 +34,96 @@ export default function App() {
   const [gamesQuery, setGamesQuery] = useState("");
 
   // Team CRUD
-  function handleAddTeam(team) {
-    const newTeam = { id: crypto.randomUUID(), ...team };
-    setTeams((prev) => [newTeam, ...prev]);
-  }
+  const handleAddTeam = useCallback(
+    (team) => {
+      const newTeam = { id: crypto.randomUUID(), ...team };
+      setTeams((prev) => [newTeam, ...prev]);
+    },
+    [setTeams]
+  );
 
-  function updateTeam(teamId, updates) {
-    setTeams((prev) =>
-      prev.map((t) => (t.id === teamId ? { ...t, ...updates } : t))
-    );
-  }
+  const updateTeam = useCallback(
+    (teamId, updates) => {
+      setTeams((prev) =>
+        prev.map((t) => (t.id === teamId ? { ...t, ...updates } : t))
+      );
+    },
+    [setTeams]
+  );
 
-  function deleteTeam(teamId) {
-    setTeams((prev) => prev.filter((t) => t.id !== teamId));
-    setPlayers((prev) => prev.filter((p) => p.teamId !== teamId));
-    setGames((prev) =>
-      prev.filter((g) => g.homeTeamId !== teamId && g.awayTeamId !== teamId)
-    );
-  }
+  // Delete a team + cascade delete its players + its games
+  const deleteTeam = useCallback(
+    (teamId) => {
+      setTeams((prev) => prev.filter((t) => t.id !== teamId));
+      setPlayers((prev) => prev.filter((p) => p.teamId !== teamId));
+      setGames((prev) =>
+        prev.filter((g) => g.homeTeamId !== teamId && g.awayTeamId !== teamId)
+      );
+    },
+    [setTeams, setPlayers, setGames]
+  );
 
   // Player CRUD
-  function updatePlayer(playerId, updates) {
-    setPlayers((prev) =>
-      prev.map((p) => (p.id === playerId ? { ...p, ...updates } : p))
-    );
-  }
+  const updatePlayer = useCallback(
+    (playerId, updates) => {
+      setPlayers((prev) =>
+        prev.map((p) => (p.id === playerId ? { ...p, ...updates } : p))
+      );
+    },
+    [setPlayers]
+  );
 
-  function removePlayer(playerId) {
-    setPlayers((prev) => prev.filter((p) => p.id !== playerId));
-  }
+  const removePlayer = useCallback(
+    (playerId) => {
+      setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    },
+    [setPlayers]
+  );
 
   // Game helpers
-  function isFinalGame(g) {
+  const isFinalGame = useCallback((g) => {
     return g.homeScore != null && g.awayScore != null;
-  }
+  }, []);
 
-  function updateGame(gameId, updates) {
-    setGames((prev) =>
-      prev.map((g) => (g.id === gameId ? { ...g, ...updates } : g))
-    );
-  }
+  const updateGame = useCallback(
+    (gameId, updates) => {
+      setGames((prev) =>
+        prev.map((g) => (g.id === gameId ? { ...g, ...updates } : g))
+      );
+    },
+    [setGames]
+  );
 
-  function clearScore(gameId) {
-    updateGame(gameId, { homeScore: null, awayScore: null });
-  }
+  const clearScore = useCallback(
+    (gameId) => {
+      updateGame(gameId, { homeScore: null, awayScore: null });
+    },
+    [updateGame]
+  );
 
-  function enterScorePrompt(gameId) {
-    const hs = prompt("Home score?", "0");
-    const as = prompt("Away score?", "0");
-    if (hs == null || as == null) return;
+  const enterScorePrompt = useCallback(
+    (gameId) => {
+      const hs = prompt("Home score?", "0");
+      const as = prompt("Away score?", "0");
+      if (hs == null || as == null) return;
 
-    const homeScore = Number(hs);
-    const awayScore = Number(as);
-    if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return;
+      const homeScore = Number(hs);
+      const awayScore = Number(as);
+      if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) return;
 
-    updateGame(gameId, { homeScore, awayScore });
-  }
+      updateGame(gameId, { homeScore, awayScore });
+    },
+    [updateGame]
+  );
 
   // Reset league (MVP)
-  function resetLeague() {
+  const resetLeague = useCallback(() => {
     localStorage.removeItem("phl_teams");
     localStorage.removeItem("phl_players");
     localStorage.removeItem("phl_games");
     localStorage.removeItem("phl_boxscores");
     window.location.reload();
-  }
+  }, []);
 
   // Normalize search strings
   const teamsQ = teamsQuery.trim().toLowerCase();
@@ -203,44 +228,71 @@ export default function App() {
     });
 
     return rows;
-  }, [teams, games]);
+  }, [teams, games, isFinalGame]);
 
-  // Context value (tabs can read this later, even if they still use props today)
-  const leagueValue = {
-    // data
-    teams,
-    players,
-    games,
-    boxScores,
-    standings,
-    teamResults,
-    playerResults,
-    gameResults,
-    teamNameById,
+  // Context value (memoized so context consumers don’t re-render on every App render)
+  const leagueValue = useMemo(
+    () => ({
+      // data
+      teams,
+      players,
+      games,
+      boxScores,
+      standings,
+      teamResults,
+      playerResults,
+      gameResults,
+      teamNameById,
 
-    // UI state
-    editingTeamId,
-    setEditingTeamId,
-    editingPlayerId,
-    setEditingPlayerId,
-    playersQuery,
-    setPlayersQuery,
-    teamsQuery,
-    setTeamsQuery,
-    gamesQuery,
-    setGamesQuery,
+      // UI state
+      editingTeamId,
+      setEditingTeamId,
+      editingPlayerId,
+      setEditingPlayerId,
+      playersQuery,
+      setPlayersQuery,
+      teamsQuery,
+      setTeamsQuery,
+      gamesQuery,
+      setGamesQuery,
 
-    // actions
-    handleAddTeam,
-    updateTeam,
-    deleteTeam,
-    updatePlayer,
-    removePlayer,
-    isFinalGame,
-    enterScorePrompt,
-    clearScore,
-    resetLeague,
-  };
+      // actions
+      handleAddTeam,
+      updateTeam,
+      deleteTeam,
+      updatePlayer,
+      removePlayer,
+      isFinalGame,
+      enterScorePrompt,
+      clearScore,
+      resetLeague,
+    }),
+    [
+      teams,
+      players,
+      games,
+      boxScores,
+      standings,
+      teamResults,
+      playerResults,
+      gameResults,
+      teamNameById,
+      editingTeamId,
+      editingPlayerId,
+      playersQuery,
+      teamsQuery,
+      gamesQuery,
+      handleAddTeam,
+      updateTeam,
+      deleteTeam,
+      updatePlayer,
+      removePlayer,
+      isFinalGame,
+      enterScorePrompt,
+      clearScore,
+      resetLeague,
+    ]
+  );
 
   return (
     <Routes>
