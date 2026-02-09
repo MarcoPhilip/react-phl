@@ -1,5 +1,5 @@
 // src/pages/GameProfile.jsx
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useLeague } from "../context/useLeague";
 
@@ -13,12 +13,13 @@ export default function GameProfile() {
     boxScores,
     upsertBoxScore,
     isFinalGame,
-    enterScorePrompt,
+    updateGame,
     clearScore,
     teamNameById,
   } = useLeague();
 
   const game = useMemo(() => games.find((g) => g.id === gameId), [games, gameId]);
+
 
   if (!game) {
     return (
@@ -58,19 +59,8 @@ export default function GameProfile() {
 
       <hr />
 
-      <div className="d-flex gap-2 align-items-center flex-wrap">
-        <div className="fs-4">{final ? `${game.homeScore} - ${game.awayScore}` : "Score: TBD"}</div>
-
-        <button className="btn btn-primary" onClick={() => enterScorePrompt(game.id)}>
-          {final ? "Edit Score" : "Enter Score"}
-        </button>
-
-        {final ? (
-          <button className="btn btn-outline-secondary" onClick={() => clearScore(game.id)}>
-            Clear
-          </button>
-        ) : null}
-      </div>
+      {/* Inline score editor */}
+      <ScoreEditor key={game.id} game={game} updateGame={updateGame} clearScore={clearScore} />
 
       <hr />
 
@@ -92,8 +82,8 @@ export default function GameProfile() {
 
       <hr />
 
-      {/* Step 3: Box Score Editor (MVP) — only show once game is Final */}
-      {final ? (
+      {/* Box Score Editor (unlocked when Final) */}
+      {isFinalGame(game) ? (
         <BoxScoreEditor
           game={game}
           teams={teams}
@@ -107,6 +97,86 @@ export default function GameProfile() {
         </p>
       )}
     </main>
+  );
+}
+
+function ScoreEditor({ game, updateGame, clearScore }) {
+  const [homeScoreDraft, setHomeScoreDraft] = useState(() => game.homeScore ?? "");
+  const [awayScoreDraft, setAwayScoreDraft] = useState(() => game.awayScore ?? "");
+
+  const saveDisabled =
+    (homeScoreDraft !== "" && Number.isNaN(Number(homeScoreDraft))) ||
+    (awayScoreDraft !== "" && Number.isNaN(Number(awayScoreDraft)));
+
+  return (
+    <div className="d-flex gap-2 align-items-end flex-wrap">
+      <div>
+        <label className="form-label mb-1">Home</label>
+        <input
+          className="form-control"
+          inputMode="numeric"
+          value={homeScoreDraft}
+          onChange={(e) => setHomeScoreDraft(e.target.value)}
+          placeholder="0"
+          style={{ width: 120 }}
+        />
+      </div>
+
+      <div>
+        <label className="form-label mb-1">Away</label>
+        <input
+          className="form-control"
+          inputMode="numeric"
+          value={awayScoreDraft}
+          onChange={(e) => setAwayScoreDraft(e.target.value)}
+          placeholder="0"
+          style={{ width: 120 }}
+        />
+      </div>
+
+      <button
+        className="btn btn-primary"
+        disabled={saveDisabled}
+        onClick={() => {
+          const hs = homeScoreDraft === "" ? null : Number(homeScoreDraft);
+          const as = awayScoreDraft === "" ? null : Number(awayScoreDraft);
+
+          if (hs !== null && Number.isNaN(hs)) return;
+          if (as !== null && Number.isNaN(as)) return;
+
+          updateGame(game.id, { homeScore: hs, awayScore: as });
+        }}
+      >
+        Save Score
+      </button>
+
+      <button
+        className="btn btn-outline-secondary"
+        onClick={() => {
+          setHomeScoreDraft(game.homeScore ?? "");
+          setAwayScoreDraft(game.awayScore ?? "");
+        }}
+      >
+        Cancel
+      </button>
+
+      <button
+        className="btn btn-outline-danger"
+        onClick={() => {
+          clearScore(game.id);
+          setHomeScoreDraft("");
+          setAwayScoreDraft("");
+        }}
+      >
+        Clear
+      </button>
+
+      {saveDisabled ? (
+        <div className="w-100">
+          <small className="text-danger">Scores must be numbers (or left blank).</small>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -232,72 +302,37 @@ function TeamBox({ title, teamId, players, rowsByPlayerId, gameId, upsertBoxScor
                     <StatInput
                       value={row.pts}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { pts: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { pts: v } })
                       }
                     />
-
                     <StatInput
                       value={row.reb}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { reb: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { reb: v } })
                       }
                     />
-
                     <StatInput
                       value={row.ast}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { ast: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { ast: v } })
                       }
                     />
-
                     <StatInput
                       value={row.stl}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { stl: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { stl: v } })
                       }
                     />
-
                     <StatInput
                       value={row.blk}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { blk: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { blk: v } })
                       }
                     />
-
                     <StatInput
                       value={row.tov}
                       onChange={(v) =>
-                        upsertBoxScore({
-                          gameId,
-                          playerId: p.id,
-                          teamId,
-                          stats: { tov: v },
-                        })
+                        upsertBoxScore({ gameId, playerId: p.id, teamId, stats: { tov: v } })
                       }
                     />
                   </tr>
@@ -309,9 +344,7 @@ function TeamBox({ title, teamId, players, rowsByPlayerId, gameId, upsertBoxScor
       </div>
 
       <div className="card-body border-top">
-        <small className="text-muted">
-          Tip: totals update automatically as you enter stats.
-        </small>
+        <small className="text-muted">Tip: totals update automatically as you enter stats.</small>
       </div>
     </div>
   );
