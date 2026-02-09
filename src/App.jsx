@@ -300,15 +300,7 @@ export default function App() {
         path="/"
         element={
           <LeagueProvider value={leagueValue}>
-            <HomeLayout
-              resetLeague={resetLeague}
-              playersCount={players.length}
-              teamsCount={teams.length}
-              gamesCount={games.length}
-              playersBadge={playerResults.length}
-              teamsBadge={teamResults.length}
-              gamesBadge={gameResults.length}
-            />
+            <HomeLayout />
           </LeagueProvider>
         }
       >

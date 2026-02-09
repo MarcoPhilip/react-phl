@@ -1,14 +1,17 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useLeague } from "../context/useLeague";
 
-export default function HomeLayout({
-  resetLeague,
-  playersCount,
-  teamsCount,
-  gamesCount,
-  playersBadge,
-  teamsBadge,
-  gamesBadge,
-}) {
+export default function HomeLayout() {
+  const {
+    resetLeague,
+    players,
+    teams,
+    games,
+    playerResults,
+    teamResults,
+    gameResults,
+  } = useLeague();
+
   return (
     <main className="app">
       <header className="app-header">
@@ -30,15 +33,15 @@ export default function HomeLayout({
         <div className="d-flex justify-content-between align-items-center">
           <h2 className="section-title mb-0">League</h2>
           <small className="text-muted">
-            {playersCount} players • {teamsCount} teams • {gamesCount} games
+            {players.length} players • {teams.length} teams • {games.length} games
           </small>
         </div>
 
         <ul className="nav nav-tabs mt-3">
           {[
-            { to: "players", label: "Players", badge: playersBadge },
-            { to: "teams", label: "Teams", badge: teamsBadge },
-            { to: "games", label: "Games", badge: gamesBadge },
+            { to: "players", label: "Players", badge: playerResults.length },
+            { to: "teams", label: "Teams", badge: teamResults.length },
+            { to: "games", label: "Games", badge: gameResults.length },
             { to: "standings", label: "Standings" },
             { to: "leaders", label: "Leaders" },
           ].map((t) => (
