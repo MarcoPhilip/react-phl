@@ -261,26 +261,8 @@ export default function App() {
         }
       >
         <Route index element={<Navigate to="players" replace />} />
-
         <Route path="players" element={<PlayersTab />} />
-
-        <Route
-          path="teams"
-          element={
-            <TeamsTab
-              onAddTeam={handleAddTeam}
-              teamsQuery={teamsQuery}
-              setTeamsQuery={setTeamsQuery}
-              teamResults={teamResults}
-              teamsQ={teamsQ}
-              editingTeamId={editingTeamId}
-              setEditingTeamId={setEditingTeamId}
-              updateTeam={updateTeam}
-              deleteTeam={deleteTeam}
-              players={players}
-            />
-          }
-        />
+        <Route path="teams" element={<TeamsTab />} />
 
         <Route
           path="games"

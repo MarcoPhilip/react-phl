@@ -1,24 +1,31 @@
 import { Link } from "react-router-dom";
 import TeamForm from "../components/TeamForm";
 import EditTeamForm from "../components/EditTeamForm";
+import { useLeague } from "../context/useLeague";
 
-export default function TeamsTab({
-  onAddTeam,
-  teamsQuery,
-  setTeamsQuery,
-  teamResults,
-  teamsQ,
-  editingTeamId,
-  setEditingTeamId,
-  updateTeam,
-  deleteTeam,
-  players,
-}) {
+export default function TeamsTab() {
+  const {
+    // data
+    players,
+    teamResults,
+    // ui
+    teamsQuery,
+    setTeamsQuery,
+    editingTeamId,
+    setEditingTeamId,
+    // actions
+    handleAddTeam,
+    updateTeam,
+    deleteTeam,
+  } = useLeague();
+
+  const teamsQ = teamsQuery.trim().toLowerCase();
+
   return (
     <>
       <div className="mb-3">
         <h3 className="h5 mb-2">Add Team</h3>
-        <TeamForm onAddTeam={onAddTeam} />
+        <TeamForm onAddTeam={handleAddTeam} />
       </div>
 
       <div className="mb-2">
