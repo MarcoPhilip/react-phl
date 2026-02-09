@@ -1,15 +1,19 @@
 import { Link } from "react-router-dom";
+import { useLeague } from "../context/useLeague";
 
-export default function GamesTab({
-  gamesQuery,
-  setGamesQuery,
-  gameResults,
-  gamesQ,
-  isFinalGame,
-  enterScorePrompt,
-  clearScore,
-  teamNameById,
-}) {
+export default function GamesTab() {
+  const {
+    gamesQuery,
+    setGamesQuery,
+    gameResults,
+    isFinalGame,
+    enterScorePrompt,
+    clearScore,
+    teamNameById,
+  } = useLeague();
+
+  const gamesQ = gamesQuery.trim().toLowerCase();
+
   return (
     <>
       <div className="mb-2">
@@ -32,7 +36,9 @@ export default function GamesTab({
       </div>
 
       {gameResults.length === 0 ? (
-        <p className="empty">{gamesQ ? "No games match your search." : "No games scheduled yet."}</p>
+        <p className="empty">
+          {gamesQ ? "No games match your search." : "No games scheduled yet."}
+        </p>
       ) : (
         <ul className="list-group">
           {gameResults.map((g) => {
@@ -52,7 +58,9 @@ export default function GamesTab({
                     </Link>
 
                     <span
-                      className={`badge ms-2 ${final ? "text-bg-success" : "text-bg-warning"}`}
+                      className={`badge ms-2 ${
+                        final ? "text-bg-success" : "text-bg-warning"
+                      }`}
                     >
                       {final ? "Final" : "Upcoming"}
                     </span>

@@ -263,22 +263,7 @@ export default function App() {
         <Route index element={<Navigate to="players" replace />} />
         <Route path="players" element={<PlayersTab />} />
         <Route path="teams" element={<TeamsTab />} />
-
-        <Route
-          path="games"
-          element={
-            <GamesTab
-              gamesQuery={gamesQuery}
-              setGamesQuery={setGamesQuery}
-              gameResults={gameResults}
-              gamesQ={gamesQ}
-              isFinalGame={isFinalGame}
-              enterScorePrompt={enterScorePrompt}
-              clearScore={clearScore}
-              teamNameById={teamNameById}
-            />
-          }
-        />
+        <Route path="games" element={<GamesTab />} />
 
         <Route path="standings" element={<StandingsTab standings={standings} />} />
 
